@@ -14,4 +14,11 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>resources/images/bp_logo.png</name>
+			<type>1</type>
+			<locationURI>PARENT-4-PROJECT_LOC/xampp/htdocs/cheque-app/src/main/java/bp/projetbanque/GestionCheque/controllers/bp_logo.png</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>

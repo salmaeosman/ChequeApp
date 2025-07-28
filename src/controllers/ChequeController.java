@@ -5,6 +5,7 @@ import repositories.ChequeRepository;
 import services.MontantEnLettresService;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public class ChequeController {
@@ -82,6 +83,14 @@ public class ChequeController {
      * Renvoie le montant en lettres selon la langue.
      */
     public String getMontantLettre(double montant, String langue) {
+        return MontantEnLettresService.convertirMontant(montant, langue);
+    }
+
+    // ✅ Méthode ajoutée pour corriger l'erreur
+    public List<Cheque> getAllCheques() {
+        return chequeRepository.findAll();
+    }
+    public String convertirMontantEnLettre(Double montant, String langue) {
         return MontantEnLettresService.convertirMontant(montant, langue);
     }
 }

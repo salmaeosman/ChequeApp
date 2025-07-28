@@ -1,15 +1,18 @@
 package vues;
 
 import controllers.FiltreController;
-import controllers.ChequeController;
 import db.H2Database;
 import entities.Cheque;
 import javafx.application.Application;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import repositories.ChequeRepository;
@@ -23,71 +26,96 @@ public class ChequeFiltreView extends Application {
     private final TextField beneficiaireField = new TextField();
     private final DatePicker datePicker = new DatePicker();
     private final TextField montantField = new TextField();
-
     private final TableView<Cheque> tableView = new TableView<>();
     private FiltreController filtreController;
+    private VBox root;
+    private Stage primaryStage;
 
     @Override
     public void start(Stage stage) {
-        stage.setTitle("Recherche dans la base des chèques");
+        this.primaryStage = stage;
+        stage.setTitle("Recherche des Chèques");
 
-        // Initialisation avec H2
+        // Init
         H2Database db = new H2Database();
         ChequeRepository repo = new ChequeRepository(db);
         filtreController = new FiltreController(repo);
 
-        // Formulaire
+        root = new VBox(20);
+        root.setPadding(new Insets(15));
+        root.setStyle("-fx-background-color: #ffffff;");
+
+        buildUI(); // construction initiale
+
+        Scene scene = new Scene(root, 900, 600);
+        stage.setScene(scene);
+        stage.setResizable(false);
+        stage.show();
+    }
+
+    private void buildUI() {
+        root.getChildren().clear(); // Nettoyage
+
+        // --- FORMULAIRE DE RECHERCHE ---
         GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
-        form.setPadding(new Insets(15));
+        form.setHgap(15);
+        form.setVgap(15);
+        form.setPadding(new Insets(20));
+        form.setStyle("-fx-background-color: white; -fx-border-color: #854e56; -fx-border-width: 3px; -fx-background-radius: 12; -fx-border-radius: 12;");
 
-        form.add(new Label("Chèque (nom + série + N°)"), 0, 0);
-        form.add(chequeField, 1, 0);
+        Label title = new Label("🔎 Rechercher un chèque");
+        title.setStyle("-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #e78212;");
+        GridPane.setColumnSpan(title, 2);
+        form.add(title, 0, 0);
 
-        form.add(new Label("Date"), 0, 1);
-        form.add(datePicker, 1, 1);
+        form.add(new Label("Chèque (nom + série + N°)"), 0, 1);
+        form.add(chequeField, 1, 1);
 
-        form.add(new Label("Bénéficiaire"), 0, 2);
-        form.add(beneficiaireField, 1, 2);
+        form.add(new Label("Date"), 0, 2);
+        form.add(datePicker, 1, 2);
 
-        form.add(new Label("Montant"), 0, 3);
-        form.add(montantField, 1, 3);
+        form.add(new Label("Bénéficiaire"), 0, 3);
+        form.add(beneficiaireField, 1, 3);
 
-        Button rechercherBtn = new Button("Rechercher");
-        Button retourBtn = new Button("Retour");
-        HBox buttons = new HBox(10, rechercherBtn, retourBtn);
-        form.add(buttons, 1, 4);
+        form.add(new Label("Montant"), 0, 4);
+        form.add(montantField, 1, 4);
 
-        // Table
+        Button rechercherBtn = createStyledButton("🔍 Rechercher");
+        Button resetBtn = createStyledButton("🔁 Vider les champs");
+        Button retourBtn = createStyledButton("⬅ Fermer");
+        Button liveRefreshBtn = createStyledButton("🧪 Rafraîchir Interface");
+
+        HBox buttons = new HBox(10, rechercherBtn, resetBtn, liveRefreshBtn, retourBtn);
+        buttons.setAlignment(Pos.CENTER_RIGHT);
+        form.add(buttons, 1, 5);
+
+        // --- TABLEAU DES RÉSULTATS ---
         TableColumn<Cheque, String> chequeCol = new TableColumn<>("Chèque");
         chequeCol.setCellValueFactory(data -> new SimpleStringProperty(
-                (data.getValue().getNomCheque() != null ? data.getValue().getNomCheque() : "") +
-                (data.getValue().getNomSerie() != null ? data.getValue().getNomSerie() : "") +
-                (data.getValue().getNumeroSerie() != null ? data.getValue().getNumeroSerie().toString() : "")
+                (data.getValue().getNomCheque() != null ? data.getValue().getNomCheque() + " " : "") +
+                        (data.getValue().getNomSerie() != null ? data.getValue().getNomSerie() + " " : "") +
+                        (data.getValue().getNumeroSerie() != null ? data.getValue().getNumeroSerie().toString() : "")
         ));
 
         TableColumn<Cheque, String> beneficiaireCol = new TableColumn<>("Bénéficiaire");
-        beneficiaireCol.setCellValueFactory(data ->
-                new SimpleStringProperty(data.getValue().getBeneficiaire())
-        );
+        beneficiaireCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBeneficiaire()));
 
         TableColumn<Cheque, LocalDate> dateCol = new TableColumn<>("Date");
-        dateCol.setCellValueFactory(data ->
-                new SimpleObjectProperty<>(data.getValue().getDate())
-        );
+        dateCol.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue().getDate()));
 
         TableColumn<Cheque, String> montantCol = new TableColumn<>("Montant");
-        montantCol.setCellValueFactory(data ->
-                new SimpleStringProperty(String.format("%.2f", data.getValue().getMontant()))
-        );
+        montantCol.setCellValueFactory(data -> new SimpleStringProperty(String.format("%.2f", data.getValue().getMontant())));
 
-        tableView.getColumns().addAll(chequeCol, beneficiaireCol, dateCol, montantCol);
+        tableView.getColumns().setAll(chequeCol, beneficiaireCol, dateCol, montantCol);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        VBox tableBox = new VBox(10, new Label("Résultats trouvés :"), tableView);
-        tableBox.setPadding(new Insets(15));
+        tableView.setPrefHeight(300);
 
-        // Double clic pour ouvrir la visualisation avec controller
+        // Style orange
+        tableView.setStyle("-fx-control-inner-background: #fff7f0; -fx-table-cell-border-color: #e78212; -fx-border-color: #e78212;");
+
+        VBox tableBox = new VBox(10, new Label("📋 Résultats trouvés :"), tableView);
+        tableBox.setPadding(new Insets(10));
+
         tableView.setRowFactory(tv -> {
             TableRow<Cheque> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -99,13 +127,16 @@ public class ChequeFiltreView extends Application {
             return row;
         });
 
+        // --- ACTIONS ---
         rechercherBtn.setOnAction(e -> rechercher());
-        retourBtn.setOnAction(e -> stage.close());
+        resetBtn.setOnAction(e -> refreshTable());
+        retourBtn.setOnAction(e -> primaryStage.close());
+        liveRefreshBtn.setOnAction(e -> buildUI()); // Reconstruction de l'UI à chaud
 
-        VBox root = new VBox(20, form, tableBox);
-        Scene scene = new Scene(root, 800, 600);
-        stage.setScene(scene);
-        stage.show();
+        root.getChildren().addAll(form, tableBox);
+
+        // Charger tous les chèques dès le départ
+        chargerTousLesCheques();
     }
 
     private void rechercher() {
@@ -130,6 +161,26 @@ public class ChequeFiltreView extends Application {
                 montant
         );
         tableView.getItems().setAll(resultats);
+    }
+
+    private void refreshTable() {
+        chequeField.clear();
+        beneficiaireField.clear();
+        datePicker.setValue(null);
+        montantField.clear();
+        chargerTousLesCheques();
+    }
+
+    private void chargerTousLesCheques() {
+        List<Cheque> tousLesCheques = filtreController.getChequeController().getAllCheques();
+        tableView.getItems().setAll(tousLesCheques);
+    }
+
+    private Button createStyledButton(String text) {
+        Button button = new Button(text);
+        button.setStyle("-fx-background-color: #854e56; -fx-text-fill: white; -fx-font-size: 16px;");
+        button.addEventHandler(MouseEvent.MOUSE_ENTERED, e -> button.setCursor(Cursor.HAND));
+        return button;
     }
 
     public static void main(String[] args) {

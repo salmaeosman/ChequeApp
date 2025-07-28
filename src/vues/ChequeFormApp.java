@@ -64,7 +64,8 @@ public class ChequeFormApp extends Application {
      mainLayout.setAlignment(Pos.TOP_CENTER);
 
      Label title = new Label("Formulaire de chèque");
-     title.setFont(new Font(20));
+     title.setFont(Font.font("Arial", 42));
+     title.setTextFill(Color.web("#e78212"));
 
      HBox langSelection = new HBox(10);
      ToggleGroup langGroup = new ToggleGroup();
@@ -87,9 +88,6 @@ public class ChequeFormApp extends Application {
      addField("montant", 630, 45, 160, formOverlay);
      addField("beneficiaire", 150, 160, 600, formOverlay);
      addField("ville", 400, 190, 180, formOverlay);
-     addField("nomCheque", 123, 293, 30, formOverlay);
-     addField("nomSerie", 185, 293, 30, formOverlay);
-     addField("numeroSerie", 240, 293, 100, formOverlay);
 
      DatePicker datePicker = new DatePicker();
      datePicker.setLayoutX(620);
@@ -104,12 +102,17 @@ public class ChequeFormApp extends Application {
      dateError.setLayoutY(180);
      errorLabels.put("date", dateError);
      formOverlay.getChildren().add(dateError);
+     
+     addField("nomCheque", 123, 293, 30, formOverlay);
+     addField("nomSerie", 185, 293, 30, formOverlay);
+     addField("numeroSerie", 240, 293, 100, formOverlay);
+
 
      chequePane.getChildren().addAll(chequeView, formOverlay);
 
      Button submitBtn = new Button("Enregistrer le chèque");
      submitBtn.setDisable(true);
-     submitBtn.setStyle("-fx-background-color: #f57c00; -fx-text-fill: white; -fx-font-size: 16px;");
+     submitBtn.setStyle("-fx-background-color: #854e56; -fx-text-fill: white; -fx-font-size: 16px;");
      submitBtn.setOnAction(e -> {
          if (validateForm(datePicker)) {
              try {
@@ -132,7 +135,7 @@ public class ChequeFormApp extends Application {
                          Cheque cheque = new Cheque(null, nomCheque, nomSerie, montant,
                                  datePicker.getValue(), ville, numeroSerie, beneficiaire, selectedLang);
                          String montantLettre = chequeController.getMontantLettre(montant, selectedLang);
-                         ChequePrintView.showChequePrint(cheque, montantLettre);
+                         ChequePrintView.showChequePrint(cheque, montantLettre, chequeController);
                      }
                      case "existedeja" -> showAlert(Alert.AlertType.WARNING, "Doublon", "Ce chèque existe déjà.");
                      case "beneficiaire" -> showAlert(Alert.AlertType.WARNING, "Erreur", "Le bénéficiaire est vide.");
