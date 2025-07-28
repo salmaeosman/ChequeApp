@@ -55,13 +55,13 @@ public class ScanView extends Application {
 
         VBox root = new VBox(20);
         root.setPadding(new Insets(30));
-        root.setStyle("-fx-background-color: #f1f3f5;");
+        root.setStyle("-fx-background-color: #f2f3f4;");
 
-        Label title = new Label("📄 Scanner ou Importer un Chèque");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 24));
-        title.setTextFill(Color.web("#0d6efd"));
+        Label title = new Label("Scanner un Chèque");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 42));
+        title.setTextFill(Color.web("#e78212"));
 
-        Label chequeLabel = new Label("🔖 Chèque : " +
+        Label chequeLabel = new Label("Chèque : " +
                 cheque.getNomCheque() + " " +
                 cheque.getNomSerie() + " " +
                 cheque.getNumeroSerie());
@@ -76,8 +76,8 @@ public class ScanView extends Application {
         profileField.setStyle("-fx-background-color: white; -fx-border-color: #ced4da; -fx-border-radius: 5; -fx-padding: 5;");
         profileSection.getChildren().addAll(profileLabel, profileField);
 
-        Button scanButton = new Button("📠 Lancer le scan");
-        scanButton.setStyle("-fx-background-color: #0d6efd; -fx-text-fill: white; -fx-font-weight: bold;");
+        Button scanButton = new Button("Lancer le scan");
+        scanButton.setStyle("-fx-background-color: #854e56; -fx-text-fill: white; -fx-font-size: 16px;");
         scanButton.setPrefWidth(180);
         scanButton.setPrefHeight(40);
         scanButton.setOnAction(e -> lancerScan(cheque));
@@ -107,7 +107,7 @@ public class ScanView extends Application {
         );
 
         Scene scene = new Scene(root, 800, 600);
-        primaryStage.setTitle("Scanner un Chèque - Application");
+        primaryStage.setTitle("Scanner un Chèque");
         primaryStage.setScene(scene);
         primaryStage.show();
     }

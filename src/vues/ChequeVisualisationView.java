@@ -4,6 +4,7 @@ import controllers.ChequeController;
 import entities.Cheque;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -12,10 +13,15 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import services.MontantEnLettresService;
+
+import java.io.File;
 
 public class ChequeVisualisationView {
 
-    // Méthode publique appelée depuis ChequeFiltreView
+    private static Label ligne1;
+    private static Label ligne2;
+
     public static void afficher(Cheque cheque, ChequeController controller) {
         String montantLettre = controller.convertirMontantEnLettre(cheque.getMontant(), cheque.getLangue());
         showChequePrint(cheque, montantLettre, controller);
@@ -33,39 +39,16 @@ public class ChequeVisualisationView {
         Pane overlay = new Pane();
         overlay.setPrefSize(800, 400);
 
-        Label montantChiffres = creerChamp(String.format("%.2f", cheque.getMontant()), 680, 146, 20);
+        Label montantChiffres = creerChamp(String.format("%.2f", cheque.getMontant()), 660, 146, 20);
 
-        Label ligne1 = new Label(montantLettre);
-        if (cheque.getLangue().equals("ar")) {
-            ligne1.setFont(new Font(16));
-            ligne1.setLayoutX(95);
-            ligne1.setPrefWidth(670);
-            ligne1.setAlignment(Pos.CENTER_RIGHT);
-        } else {
-            ligne1.setFont(new Font(16));
-            ligne1.setLayoutX(400);
-            ligne1.setPrefWidth(650);
-            ligne1.setAlignment(Pos.CENTER_LEFT);
-        }
-        ligne1.setLayoutY(209);
-        ligne1.setWrapText(true);
+        ligne1 = new Label();
+        ligne2 = new Label();
 
-        Label ligne2 = new Label("");
-        ligne2.setLayoutY(155);
-        if (cheque.getLangue().equals("ar")) {
-            ligne2.setLayoutX(50);
-            ligne2.setFont(new Font(25));
-            ligne2.setAlignment(Pos.CENTER_RIGHT);
-        } else {
-            ligne2.setLayoutX(60);
-            ligne2.setFont(new Font(19));
-            ligne2.setAlignment(Pos.CENTER_LEFT);
-        }
-        ligne2.setPrefWidth(700);
-        ligne2.setWrapText(true);
+        updateDirectionForArabic(cheque.getLangue());
+        updateMontantEnLettres(montantLettre, cheque.getLangue());
 
         Label beneficiaire;
-        if (cheque.getLangue().equals("ar")) {
+        if ("ar".equals(cheque.getLangue())) {
             beneficiaire = creerChamp(cheque.getBeneficiaire(), 195, 260, 18);
             beneficiaire.setPrefWidth(600);
             beneficiaire.setAlignment(Pos.CENTER_RIGHT);
@@ -85,47 +68,54 @@ public class ChequeVisualisationView {
         stackPane.setPrefSize(900, 600);
         stackPane.getChildren().addAll(chequeView, overlay);
 
-        Button boutonRafraichir = new Button("Rafraîchir");
-        boutonRafraichir.setFont(new Font(14));
-        boutonRafraichir.setStyle("-fx-background-color: #854e56; -fx-text-fill: white; -fx-font-size: 16px;");
-        boutonRafraichir.setLayoutX(530);
-        boutonRafraichir.setLayoutY(500);
-        boutonRafraichir.setPrefWidth(150);
-        boutonRafraichir.setOnAction(e -> {
+        Button boutonRafraichir = createButton("Rafraîchir", 530, e -> {
             stage.close();
             showChequePrint(cheque, montantLettre, controller);
         });
 
-        Button boutonModifier = new Button("Modifier");
-        boutonModifier.setFont(new Font(14));
-        boutonModifier.setStyle("-fx-background-color: #854e56; -fx-text-fill: white; -fx-font-size: 16px;");
-        boutonModifier.setLayoutX(200);
-        boutonModifier.setLayoutY(500);
-        boutonModifier.setPrefWidth(150);
-        boutonModifier.setOnAction(e -> {
+        Button boutonModifier = createButton("Modifier", 200, e -> {
             stage.close();
             ChequeEditView.afficher(cheque, controller, () -> {
                 afficher(cheque, controller);
             });
         });
 
-        // 🔍 BOUTON POUR SCANNER LE CHÈQUE
-        Button boutonScanner = new Button("Scanner");
-        boutonScanner.setFont(new Font(14));
-        boutonScanner.setStyle("-fx-background-color: #854e56; -fx-text-fill: white; -fx-font-size: 16px;");
-        boutonScanner.setLayoutX(365);
-        boutonScanner.setLayoutY(500);
-        boutonScanner.setPrefWidth(150);
-        boutonScanner.setOnAction(e -> {
+        Button boutonScanner = createButton("Scanner", 365, e -> {
             stage.close();
-            // Ouvre la vue de scan avec le chèque courant
             ScanView.scanCheque(cheque);
         });
+
+        Button boutonVoirScan = createButton("Voir le scan", 20, e -> {
+            File scanFile = getScanFileIfExists(cheque.getId());
+            if (scanFile != null) {
+                ScanDisplayView.afficher(scanFile.getAbsolutePath());
+            } else {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Scan introuvable");
+                alert.setHeaderText(null);
+                alert.setContentText("Ce chèque n’a pas encore été scanné. Veuillez le scanner maintenant.");
+                alert.showAndWait();
+                stage.close();
+                ScanView.scanCheque(cheque);
+            }
+        });
+        boutonVoirScan.setLayoutY(460);
+
+        Button boutonRetour = createButton("Retour au filtre", 20, e -> {
+            stage.close();
+            try {
+                new ChequeFiltreView().start(new Stage());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+        boutonRetour.setLayoutY(20);
 
         overlay.getChildren().addAll(
                 montantChiffres, ligne1, ligne2, beneficiaire,
                 nomCheque, nomSerie, numeroSerie, ville, date,
-                boutonRafraichir, boutonModifier, boutonScanner
+                boutonRafraichir, boutonModifier, boutonScanner,
+                boutonRetour, boutonVoirScan
         );
 
         Scene scene = new Scene(stackPane, 900, 600);
@@ -134,11 +124,100 @@ public class ChequeVisualisationView {
         stage.show();
     }
 
+    private static Button createButton(String text, double layoutX, javafx.event.EventHandler<javafx.event.ActionEvent> action) {
+        Button button = new Button(text);
+        button.setFont(new Font(14));
+        button.setStyle("-fx-background-color: #854e56; -fx-text-fill: white; -fx-font-size: 16px;");
+        button.setLayoutX(layoutX);
+        button.setLayoutY(500);
+        button.setPrefWidth(150);
+        button.setOnAction(action);
+        return button;
+    }
+
     private static Label creerChamp(String texte, double x, double y, int fontSize) {
         Label label = new Label(texte);
         label.setFont(new Font(fontSize));
         label.setLayoutX(x);
         label.setLayoutY(y);
         return label;
+    }
+
+    private static void updateDirectionForArabic(String langue) {
+        ligne1.setFont(new Font(16));
+        ligne2.setFont(new Font(16));
+
+        if ("ar".equals(langue)) {
+            ligne1.setLayoutX(95);
+            ligne1.setPrefWidth(670);
+            ligne1.setAlignment(Pos.CENTER_RIGHT);
+
+            ligne2.setLayoutX(155);
+            ligne2.setPrefWidth(670);
+            ligne2.setAlignment(Pos.CENTER_RIGHT);
+        } else {
+            ligne1.setLayoutX(395);
+            ligne1.setPrefWidth(650);
+            ligne1.setAlignment(Pos.CENTER_LEFT);
+
+            ligne2.setLayoutX(100);
+            ligne2.setPrefWidth(650);
+            ligne2.setAlignment(Pos.CENTER_LEFT);
+        }
+
+        ligne1.setLayoutY(209);
+        ligne1.setWrapText(true);
+
+        ligne2.setLayoutY(235);
+        ligne2.setWrapText(true);
+    }
+
+    private static void updateMontantEnLettres(String montantLettreDirect, String langue) {
+        try {
+            String lettres = montantLettreDirect;
+
+            javafx.scene.text.Text textMeasurer = new javafx.scene.text.Text();
+            textMeasurer.setFont(Font.font("Arial", 16));
+
+            double maxWidth = "ar".equals(langue) ? 300 : 370;
+
+            String[] words = lettres.split("\\s+");
+            StringBuilder ligne1Text = new StringBuilder();
+            StringBuilder ligne2Text = new StringBuilder();
+
+            for (String word : words) {
+                String tentative = ligne1Text.length() > 0 ? ligne1Text + " " + word : word;
+                textMeasurer.setText(tentative);
+                double width = textMeasurer.getLayoutBounds().getWidth();
+
+                if (width <= maxWidth) {
+                    if (ligne1Text.length() > 0) ligne1Text.append(" ");
+                    ligne1Text.append(word);
+                } else {
+                    if (ligne2Text.length() > 0) ligne2Text.append(" ");
+                    ligne2Text.append(word);
+                }
+            }
+
+            ligne1.setText(ligne1Text.toString());
+            ligne2.setText(ligne2Text.toString());
+        } catch (Exception ex) {
+            ligne1.setText("");
+            ligne2.setText("");
+        }
+    }
+
+    private static File getScanFileIfExists(Long chequeId) {
+        File scansDir = new File("scans");
+        if (!scansDir.exists()) return null;
+
+        String[] extensions = {".jpg", ".png", ".jpeg"};
+        for (String ext : extensions) {
+            File file = new File(scansDir, "scan_" + chequeId + ext);
+            if (file.exists() && file.isFile()) {
+                return file;
+            }
+        }
+        return null;
     }
 }

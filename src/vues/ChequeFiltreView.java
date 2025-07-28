@@ -36,7 +36,6 @@ public class ChequeFiltreView extends Application {
         this.primaryStage = stage;
         stage.setTitle("Recherche des Chèques");
 
-        // Init
         H2Database db = new H2Database();
         ChequeRepository repo = new ChequeRepository(db);
         filtreController = new FiltreController(repo);
@@ -45,7 +44,7 @@ public class ChequeFiltreView extends Application {
         root.setPadding(new Insets(15));
         root.setStyle("-fx-background-color: #ffffff;");
 
-        buildUI(); // construction initiale
+        buildUI();
 
         Scene scene = new Scene(root, 900, 600);
         stage.setScene(scene);
@@ -54,9 +53,8 @@ public class ChequeFiltreView extends Application {
     }
 
     private void buildUI() {
-        root.getChildren().clear(); // Nettoyage
+        root.getChildren().clear();
 
-        // --- FORMULAIRE DE RECHERCHE ---
         GridPane form = new GridPane();
         form.setHgap(15);
         form.setVgap(15);
@@ -80,21 +78,19 @@ public class ChequeFiltreView extends Application {
         form.add(new Label("Montant"), 0, 4);
         form.add(montantField, 1, 4);
 
-        Button rechercherBtn = createStyledButton("🔍 Rechercher");
-        Button resetBtn = createStyledButton("🔁 Vider les champs");
-        Button retourBtn = createStyledButton("⬅ Fermer");
-        Button liveRefreshBtn = createStyledButton("🧪 Rafraîchir Interface");
+        Button rechercherBtn = createStyledButton("Rechercher");
+        Button resetBtn = createStyledButton("Vider les champs");
+        Button retourBtn = createStyledButton("Retour");
 
-        HBox buttons = new HBox(10, rechercherBtn, resetBtn, liveRefreshBtn, retourBtn);
+        HBox buttons = new HBox(10, rechercherBtn, resetBtn, retourBtn);
         buttons.setAlignment(Pos.CENTER_RIGHT);
         form.add(buttons, 1, 5);
 
-        // --- TABLEAU DES RÉSULTATS ---
         TableColumn<Cheque, String> chequeCol = new TableColumn<>("Chèque");
         chequeCol.setCellValueFactory(data -> new SimpleStringProperty(
                 (data.getValue().getNomCheque() != null ? data.getValue().getNomCheque() + " " : "") +
-                        (data.getValue().getNomSerie() != null ? data.getValue().getNomSerie() + " " : "") +
-                        (data.getValue().getNumeroSerie() != null ? data.getValue().getNumeroSerie().toString() : "")
+                (data.getValue().getNomSerie() != null ? data.getValue().getNomSerie() + " " : "") +
+                (data.getValue().getNumeroSerie() != null ? data.getValue().getNumeroSerie().toString() : "")
         ));
 
         TableColumn<Cheque, String> beneficiaireCol = new TableColumn<>("Bénéficiaire");
@@ -109,8 +105,6 @@ public class ChequeFiltreView extends Application {
         tableView.getColumns().setAll(chequeCol, beneficiaireCol, dateCol, montantCol);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPrefHeight(300);
-
-        // Style orange
         tableView.setStyle("-fx-control-inner-background: #fff7f0; -fx-table-cell-border-color: #e78212; -fx-border-color: #e78212;");
 
         VBox tableBox = new VBox(10, new Label("📋 Résultats trouvés :"), tableView);
@@ -127,15 +121,20 @@ public class ChequeFiltreView extends Application {
             return row;
         });
 
-        // --- ACTIONS ---
         rechercherBtn.setOnAction(e -> rechercher());
         resetBtn.setOnAction(e -> refreshTable());
-        retourBtn.setOnAction(e -> primaryStage.close());
-        liveRefreshBtn.setOnAction(e -> buildUI()); // Reconstruction de l'UI à chaud
+
+        // ✅ Nouveau comportement du bouton retour : ouvre la HomePage
+        retourBtn.setOnAction(e -> {
+            primaryStage.close();
+            try {
+                new HomePage().start(new Stage());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
 
         root.getChildren().addAll(form, tableBox);
-
-        // Charger tous les chèques dès le départ
         chargerTousLesCheques();
     }
 
