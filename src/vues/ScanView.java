@@ -129,7 +129,7 @@ public class ScanView extends Application {
                 });
             } catch (Exception ex) {
                 Platform.runLater(() -> {
-                    messageLabel.setText("❌ Erreur de scan : " + ex.getMessage());
+                    messageLabel.setText("❌ " + ex.getMessage());
                 });
             }
         }).start();

@@ -32,6 +32,9 @@ public class ScanRepository {
                 }
             }
         } catch (SQLException e) {
+            if (e.getMessage().contains("unique_cheque_scan")) {
+                throw new RuntimeException("Le chèque a déjà un scan associé.");
+            }
             throw new RuntimeException("Erreur insertion scan : " + e.getMessage(), e);
         }
     }

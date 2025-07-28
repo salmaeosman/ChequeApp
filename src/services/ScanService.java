@@ -27,6 +27,12 @@ public class ScanService {
         Cheque cheque = chequeRepository.findById(chequeId)
                 .orElseThrow(() -> new RuntimeException("Chèque introuvable"));
 
+        // 🔒 Vérification si le chèque a déjà été scanné
+        Optional<Scan> existing = scanRepository.findByCheque(cheque);
+        if (existing.isPresent()) {
+            throw new RuntimeException("Ce chèque a déjà été scanné.");
+        }
+
         File dir = new File(outputFolder);
         if (!dir.exists()) dir.mkdirs();
 
@@ -49,9 +55,7 @@ public class ScanService {
 
         byte[] imageBytes = Files.readAllBytes(outputFile.toPath());
 
-        Optional<Scan> existing = scanRepository.findByCheque(cheque);
-        Scan scan = existing.orElse(new Scan());
-
+        Scan scan = new Scan();
         scan.setCheque(cheque);
         scan.setFileName(fileName);
         scan.setFileType("image/png");

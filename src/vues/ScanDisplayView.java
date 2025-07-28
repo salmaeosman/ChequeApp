@@ -20,42 +20,37 @@ public class ScanDisplayView {
         Stage stage = new Stage();
         stage.setTitle("Affichage du Scan");
 
-        // ----- Conteneur principal -----
         VBox container = new VBox(20);
         container.setPadding(new Insets(30));
         container.setAlignment(Pos.CENTER);
         container.setStyle("-fx-background-color: #f8f9fa;");
 
-        // ----- Contenu interne -----
         VBox content = new VBox(20);
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(30));
         content.setStyle("-fx-background-color: white; -fx-border-radius: 8; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0.5, 0, 0);");
 
-        // Titre
         Text title = new Text("Image du Scan");
         title.setFont(Font.font("Arial", 24));
 
-        // Vérification et chargement de l’image
         ImageView imageView = new ImageView();
         try {
             File imageFile = new File(imagePath);
             if (!imageFile.exists() || !Files.isReadable(imageFile.toPath())) {
-                throw new Exception("Image introuvable");
+                title.setText("Image non disponible");
+            } else {
+                Image image = new Image(imageFile.toURI().toString());
+                imageView.setImage(image);
+                imageView.setPreserveRatio(true);
+                imageView.setFitWidth(600);
+                imageView.setSmooth(true);
+                imageView.setStyle("-fx-border-color: #ccc;");
             }
-
-            Image image = new Image(imageFile.toURI().toString());
-            imageView.setImage(image);
-            imageView.setPreserveRatio(true);
-            imageView.setFitWidth(600);
-            imageView.setSmooth(true);
-            imageView.setStyle("-fx-border-color: #ccc;");
         } catch (Exception e) {
             title.setText("Image non disponible");
         }
 
-        // Bouton retour
-        Button retourBtn = new Button("Retour à l'accueil");
+        Button retourBtn = new Button("Retour au filtre");
         retourBtn.setFont(Font.font("Arial", 14));
         retourBtn.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-background-radius: 5;");
         retourBtn.setOnMouseEntered(ev -> retourBtn.setStyle("-fx-background-color: #0056b3; -fx-text-fill: white; -fx-background-radius: 5;"));
@@ -70,7 +65,6 @@ public class ScanDisplayView {
             }
         });
 
-        // Assemblage
         content.getChildren().addAll(title, imageView, retourBtn);
         container.getChildren().add(content);
 

@@ -207,17 +207,23 @@ public class ChequeVisualisationView {
         }
     }
 
-    private static File getScanFileIfExists(Long chequeId) {
+    private static File getScanFileIfExists(Object chequeId) {
         File scansDir = new File("scans");
         if (!scansDir.exists()) return null;
 
-        String[] extensions = {".jpg", ".png", ".jpeg"};
-        for (String ext : extensions) {
-            File file = new File(scansDir, "scan_" + chequeId + ext);
-            if (file.exists() && file.isFile()) {
+        File[] files = scansDir.listFiles();
+        if (files == null) return null;
+
+        String idStr = String.valueOf(chequeId);
+
+        for (File file : files) {
+            if (file.getName().startsWith("scan_" + idStr) &&
+                (file.getName().endsWith(".jpg") || file.getName().endsWith(".png") || file.getName().endsWith(".jpeg"))) {
                 return file;
             }
         }
+
         return null;
     }
+
 }
