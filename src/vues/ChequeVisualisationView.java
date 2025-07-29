@@ -1,7 +1,10 @@
 package vues;
 
 import controllers.ChequeController;
+import controllers.ScanController;
+import db.H2Database;
 import entities.Cheque;
+import entities.Scan;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -13,7 +16,9 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import services.MontantEnLettresService;
+import repositories.ChequeRepository;
+import repositories.ScanRepository;
+import services.ScanService;
 
 import java.io.File;
 
@@ -68,11 +73,6 @@ public class ChequeVisualisationView {
         stackPane.setPrefSize(900, 600);
         stackPane.getChildren().addAll(chequeView, overlay);
 
-        Button boutonRafraichir = createButton("Rafraîchir", 530, e -> {
-            stage.close();
-            showChequePrint(cheque, montantLettre, controller);
-        });
-
         Button boutonModifier = createButton("Modifier", 200, e -> {
             stage.close();
             ChequeEditView.afficher(cheque, controller, () -> {
@@ -85,9 +85,10 @@ public class ChequeVisualisationView {
             ScanView.scanCheque(cheque);
         });
 
-        Button boutonVoirScan = createButton("Voir le scan", 20, e -> {
-            File scanFile = getScanFileIfExists(cheque.getId());
-            if (scanFile != null) {
+        // "Voir le scan" remplace maintenant "Rafraîchir" (position X = 530)
+        Button boutonVoirScan = createButton("Voir le scan", 530, e -> {
+            File scanFile = getScanFileFromDatabase(cheque.getId());
+            if (scanFile != null && scanFile.exists()) {
                 ScanDisplayView.afficher(scanFile.getAbsolutePath());
             } else {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -99,7 +100,6 @@ public class ChequeVisualisationView {
                 ScanView.scanCheque(cheque);
             }
         });
-        boutonVoirScan.setLayoutY(460);
 
         Button boutonRetour = createButton("Retour au filtre", 20, e -> {
             stage.close();
@@ -114,8 +114,7 @@ public class ChequeVisualisationView {
         overlay.getChildren().addAll(
                 montantChiffres, ligne1, ligne2, beneficiaire,
                 nomCheque, nomSerie, numeroSerie, ville, date,
-                boutonRafraichir, boutonModifier, boutonScanner,
-                boutonRetour, boutonVoirScan
+                boutonModifier, boutonScanner, boutonRetour, boutonVoirScan
         );
 
         Scene scene = new Scene(stackPane, 900, 600);
@@ -207,23 +206,24 @@ public class ChequeVisualisationView {
         }
     }
 
-    private static File getScanFileIfExists(Object chequeId) {
-        File scansDir = new File("scans");
-        if (!scansDir.exists()) return null;
+    private static File getScanFileFromDatabase(Long chequeId) {
+        H2Database db = new H2Database();
+        ScanRepository scanRepository = new ScanRepository(db);
+        ChequeRepository chequeRepository = new ChequeRepository(db);
+        ScanService scanService = new ScanService(scanRepository, chequeRepository);
+        ScanController scanController = new ScanController(scanService);
 
-        File[] files = scansDir.listFiles();
-        if (files == null) return null;
-
-        String idStr = String.valueOf(chequeId);
-
-        for (File file : files) {
-            if (file.getName().startsWith("scan_" + idStr) &&
-                (file.getName().endsWith(".jpg") || file.getName().endsWith(".png") || file.getName().endsWith(".jpeg"))) {
-                return file;
+        try {
+            Scan scan = scanController.getScanByChequeId(chequeId);
+            if (scan != null) {
+                String fileName = scan.getFileName();
+                File file = new File("scans/" + fileName);
+                return file.exists() ? file : null;
             }
+        } catch (Exception e) {
+            return null;
         }
 
         return null;
     }
-
 }

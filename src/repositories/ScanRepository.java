@@ -59,4 +59,30 @@ public class ScanRepository {
         }
         return Optional.empty();
     }
+
+    public Scan findByChequeId(Long chequeId) {
+        try (PreparedStatement stmt = conn.prepareStatement(
+                "SELECT * FROM scans WHERE cheque_id = ?")) {
+
+            stmt.setLong(1, chequeId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                Scan scan = new Scan();
+                scan.setId(rs.getLong("id"));
+                scan.setFileName(rs.getString("fileName"));
+                scan.setFileType(rs.getString("fileType"));
+                scan.setImage(rs.getBytes("image"));
+
+                Cheque cheque = new Cheque();
+                cheque.setId(chequeId);
+                scan.setCheque(cheque);
+
+                return scan;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

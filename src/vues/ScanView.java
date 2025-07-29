@@ -21,6 +21,7 @@ import javafx.stage.Stage;
 
 import java.io.ByteArrayInputStream;
 
+import controllers.ChequeController;
 import controllers.ScanController;
 import db.H2Database;
 
@@ -31,6 +32,7 @@ public class ScanView extends Application {
     ScanRepository scanRepo = new ScanRepository(db);
     ScanService scanService = new ScanService(scanRepo, chequeRepo);
     ScanController scanController = new ScanController(scanService);
+    ChequeController chequeController = new ChequeController(chequeRepo);
 
     private Label messageLabel = new Label();
     private ImageView imageView = new ImageView();
@@ -82,6 +84,21 @@ public class ScanView extends Application {
         scanButton.setPrefHeight(40);
         scanButton.setOnAction(e -> lancerScan(cheque));
 
+        Button retourButton = new Button("Retour à la visualisation");
+        retourButton.setStyle("-fx-background-color: #854e56; -fx-text-fill: white; -fx-font-size: 16px;");
+        retourButton.setPrefWidth(220);
+        retourButton.setPrefHeight(40);
+        retourButton.setDisable(chequeFromVisualisation == null); // désactive si on ne vient pas de visualisation
+        retourButton.setOnAction(e -> {
+            primaryStage.close();
+            if (chequeFromVisualisation != null) {
+                ChequeVisualisationView.afficher(cheque, chequeController);
+            }
+        });
+
+        HBox buttonBox = new HBox(20, scanButton, retourButton);
+        buttonBox.setAlignment(Pos.CENTER);
+
         messageLabel.setWrapText(true);
         messageLabel.setFont(Font.font("Arial", 14));
         messageLabel.setTextFill(Color.web("#495057"));
@@ -94,9 +111,6 @@ public class ScanView extends Application {
 
         VBox.setMargin(imageView, new Insets(20, 0, 0, 0));
 
-        HBox buttonBox = new HBox(scanButton);
-        buttonBox.setAlignment(Pos.CENTER);
-
         root.getChildren().addAll(
                 title,
                 chequeLabel,
@@ -106,7 +120,7 @@ public class ScanView extends Application {
                 imageView
         );
 
-        Scene scene = new Scene(root, 800, 600);
+        Scene scene = new Scene(root, 900, 600);
         primaryStage.setTitle("Scanner un Chèque");
         primaryStage.setScene(scene);
         primaryStage.show();

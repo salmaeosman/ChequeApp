@@ -64,4 +64,9 @@ public class ScanService {
         scanRepository.save(scan);
         return scan;
     }
+ // ScanService.java
+    public Scan getScanByChequeId(Long chequeId) {
+        return scanRepository.findByChequeId(chequeId);
+    }
+
 }

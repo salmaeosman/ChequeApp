@@ -26,15 +26,44 @@ public class ChequeFormApp extends Application {
  private final Map<String, Label> errorLabels = new HashMap<>();
  private ChequeController chequeController;
 
- private final Map<String, String> arabicMap = Map.ofEntries(
-         Map.entry("a", "ش"), Map.entry("b", "لا"), Map.entry("c", "ؤ"), Map.entry("d", "ي"),
-         Map.entry("e", "ث"), Map.entry("f", "ب"), Map.entry("g", "ل"), Map.entry("h", "ا"),
-         Map.entry("i", "ه"), Map.entry("j", "ت"), Map.entry("k", "ن"), Map.entry("l", "م"),
-         Map.entry("m", "ة"), Map.entry("n", "ى"), Map.entry("o", "خ"), Map.entry("p", "ح"),
-         Map.entry("q", "ض"), Map.entry("r", "ق"), Map.entry("s", "س"), Map.entry("t", "ف"),
-         Map.entry("u", "ع"), Map.entry("v", "ر"), Map.entry("w", "ص"), Map.entry("x", "ء"),
-         Map.entry("y", "غ"), Map.entry("z", "ئ")
- );
+ private static final Map<String, String> arabicMapAZERTY = Map.ofEntries(
+		    Map.entry("a", "ش"), Map.entry("z", "ئ"), Map.entry("e", "ث"), Map.entry("r", "ق"),
+		    Map.entry("t", "ف"), Map.entry("y", "غ"), Map.entry("u", "ع"), Map.entry("i", "ه"),
+		    Map.entry("o", "خ"), Map.entry("p", "ح"), Map.entry("q", "ض"), Map.entry("s", "س"),
+		    Map.entry("d", "ي"), Map.entry("f", "ب"), Map.entry("g", "ل"), Map.entry("h", "ا"),
+		    Map.entry("j", "ت"), Map.entry("k", "ن"), Map.entry("l", "م"), Map.entry("m", "ة"),
+		    Map.entry("w", "ص"), Map.entry("x", "ء"), Map.entry("c", "ؤ"), Map.entry("v", "ر"),
+		    Map.entry("b", "لا"), Map.entry("n", "ى"), Map.entry(",", "و"), Map.entry(";", "ز"),
+		    Map.entry(":", "ط"), Map.entry("!", "ظ"), Map.entry(")", "ك"), Map.entry("=", "ذ"),
+		    Map.entry("-", "د"), Map.entry("'", "ج")
+		);
+
+ private static final Map<String, String> arabicMapQWERTY = Map.ofEntries(
+		    Map.entry("q", "ض"), Map.entry("w", "ص"), Map.entry("e", "ث"), Map.entry("r", "ق"),
+		    Map.entry("t", "ف"), Map.entry("y", "غ"), Map.entry("u", "ع"), Map.entry("i", "ه"),
+		    Map.entry("o", "خ"), Map.entry("p", "ح"), Map.entry("[", "ج"), Map.entry("]", "د"),
+		    Map.entry("\\", "ذ"), Map.entry("a", "ش"), Map.entry("s", "س"), Map.entry("d", "ي"), 
+		    Map.entry("f", "ب"), Map.entry("g", "ل"), Map.entry("h", "ا"), Map.entry("j", "ت"), 
+		    Map.entry("k", "ن"), Map.entry("l", "م"), Map.entry(";", "ك"), Map.entry("'", "ط"),
+		    Map.entry("z", "ئ"), Map.entry("x", "ء"), Map.entry("c", "ؤ"), Map.entry("v", "ر"),
+		    Map.entry("b", "لا"), Map.entry("n", "ى"), Map.entry("m", "ة"), Map.entry(",", "و"),
+		    Map.entry(".", "ز"), Map.entry("/", "ظ")
+		);
+		private static Map<String, String> arabicMap;
+
+		static {
+		    // Détection de la locale clavier
+		    String layout = System.getProperty("user.language") + "_" + System.getProperty("user.country");
+
+		    if (layout.startsWith("fr")) {
+		        arabicMap = arabicMapAZERTY;
+		    } else if (layout.startsWith("en")) {
+		        arabicMap = arabicMapQWERTY;
+		    } else {
+		        // Par défaut : AZERTY
+		        arabicMap = arabicMapAZERTY;
+		    }
+		}
 
  private final Map<String, Map<String, String>> messages = Map.of(
          "fr", Map.of(

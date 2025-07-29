@@ -26,4 +26,9 @@ public class ScanController {
             System.err.println("❌ Erreur de scan : " + e.getMessage());
         }
     }
+ // ScanController.java
+    public Scan getScanByChequeId(Long chequeId) {
+        return scanService.getScanByChequeId(chequeId);
+    }
+
 }
