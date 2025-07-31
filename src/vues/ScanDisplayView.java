@@ -106,7 +106,7 @@ public class ScanDisplayView {
         retourBtn.setOnMouseEntered(e -> retourBtn.setStyle("-fx-background-color: #854e56; -fx-text-fill: white; -fx-font-size: 16px;"));
         retourBtn.setOnMouseExited(e -> retourBtn.setStyle("-fx-background-color: #854e56; -fx-text-fill: white; -fx-font-size: 16px;"));
 
-        retourBtn.setOnAction(e -> {
+      /*  retourBtn.setOnAction(e -> {
             stage.close();
             try {
                 new ChequeFiltreView().start(new Stage());
@@ -114,7 +114,7 @@ public class ScanDisplayView {
                 ex.printStackTrace();
             }
         });
-
+*/
         buttonBar.getChildren().addAll(imprimerBtn, retourBtn);
 
         root.setTop(topSection);

@@ -14,6 +14,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import controllers.HomeController;
 
 public class HomePage extends Application {
 
@@ -54,21 +55,11 @@ public class HomePage extends Application {
             item.setCursor(Cursor.HAND);
         }
 
-        menuAjouter.setOnMouseClicked(e -> {
-            try {
-                new ChequeFormApp().start(new Stage());
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
+        HomeController controller = new HomeController();
 
-        menuFiltre.setOnMouseClicked(e -> {
-            try {
-                new ChequeFiltreView().start(new Stage());
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
+        menuAjouter.setOnMouseClicked(e -> controller.ouvrirFormulaireCheque());
+        menuFiltre.setOnMouseClicked(e -> controller.ouvrirFiltreCheque());
+
 
         // Logo banque
         Image logoImg = new Image(getClass().getResourceAsStream("/images/bp_logo.png"));

@@ -89,12 +89,12 @@ public class ScanView extends Application {
         retourButton.setPrefWidth(220);
         retourButton.setPrefHeight(40);
         retourButton.setDisable(chequeFromVisualisation == null); // désactive si on ne vient pas de visualisation
-        retourButton.setOnAction(e -> {
+       /* retourButton.setOnAction(e -> {
             primaryStage.close();
             if (chequeFromVisualisation != null) {
                 ChequeVisualisationView.afficher(cheque, chequeController);
             }
-        });
+        });*/
 
         HBox buttonBox = new HBox(20, scanButton, retourButton);
         buttonBox.setAlignment(Pos.CENTER);
