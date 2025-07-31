@@ -149,8 +149,8 @@ public class ChequePrintView {
         ligne2.setFont(new Font(16));
 
         if ("ar".equals(langue)) {
-            ligne1.setLayoutX(-45);
-            ligne1.setPrefWidth(670);
+            ligne1.setLayoutX(-70);
+            ligne1.setPrefWidth(690);
             ligne1.setAlignment(Pos.CENTER_RIGHT);
 
             ligne2.setLayoutX(-2);
@@ -179,7 +179,7 @@ public class ChequePrintView {
             javafx.scene.text.Text textMeasurer = new javafx.scene.text.Text();
             textMeasurer.setFont(Font.font("Arial", 16));
 
-            double maxWidth = "ar".equals(langue) ? 260 : 300;
+            double maxWidth = "ar".equals(langue) ? 250 : 300;
             String[] words = lettres.split("\\s+");
             StringBuilder ligne1Text = new StringBuilder();
             StringBuilder ligne2Text = new StringBuilder();

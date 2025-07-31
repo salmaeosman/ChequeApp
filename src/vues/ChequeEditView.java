@@ -53,9 +53,18 @@ public class ChequeEditView {
 	    	    Map.entry(".", "ز"), Map.entry("/", "ظ")
 	    	);
 
-	    	// Force le mappage QWERTY pour l'arabe
-	    	private static final Map<String, String> arabicMap = arabicMapQWERTY;
+	    	private static Map<String, String> arabicMap;
 
+	    	static {
+	    	    String layout = System.getProperty("user.language") + "_" + System.getProperty("user.country");
+	    	    if (layout.startsWith("fr")) {
+	    	        arabicMap = arabicMapAZERTY;
+	    	    } else if (layout.startsWith("en")) {
+	    	        arabicMap = arabicMapQWERTY;
+	    	    } else {
+	    	        arabicMap = arabicMapAZERTY;
+	    	    }
+	    	}
 
 	    private static final Map<String, Map<String, String>> messages = Map.of(
 	            "fr", Map.of(
@@ -298,17 +307,28 @@ public class ChequeEditView {
 	            l2.setAlignment(Pos.CENTER_LEFT);
 	        }
 
-	        // Bénéficiaire
+	     // ✅ Bénéficiaire affiché correctement RTL
 	        Label beneficiaire = new Label(fields.get("beneficiaire").getText());
-	        beneficiaire.setFont(Font.font(18));
+	        beneficiaire.setFont(Font.font("Arial", 18));
 	        beneficiaire.setLayoutY(113);
-	        beneficiaire.setPrefWidth(widthPx - 200);
+	        beneficiaire.setPrefHeight(25);
+
 	        if ("ar".equals(langue)) {
-	            beneficiaire.setLayoutX(150);
-	            beneficiaire.setAlignment(Pos.CENTER_RIGHT);
+	            // Largeur fixe adaptée à la ligne du chèque
+	            double champLargeur = 500;
+	            double margeDroite = 80;
+
+	            beneficiaire.setPrefWidth(champLargeur);
+	            beneficiaire.setLayoutX(widthPx - champLargeur - margeDroite);
+	            beneficiaire.setAlignment(Pos.BASELINE_RIGHT);
+	            beneficiaire.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+	            beneficiaire.setStyle("-fx-text-alignment: right; -fx-label-padding: 0;");
 	        } else {
+	            beneficiaire.setPrefWidth(500);
 	            beneficiaire.setLayoutX(90);
-	            beneficiaire.setAlignment(Pos.CENTER_LEFT);
+	            beneficiaire.setAlignment(Pos.BASELINE_LEFT);
+	            beneficiaire.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
+	            beneficiaire.setStyle("-fx-text-alignment: left;");
 	        }
 
 	        // Ville
@@ -389,7 +409,7 @@ public class ChequeEditView {
 	            javafx.scene.text.Text textMeasurer = new javafx.scene.text.Text();
 	            textMeasurer.setFont(Font.font("Arial", 16));
 
-	            double maxWidth = "ar".equals(langue) ? 300 : 370;
+	            double maxWidth = "ar".equals(langue) ? 250 : 370;
 
 	            String[] words = lettres.split("\\s+");
 	            StringBuilder ligne1Text = new StringBuilder();
@@ -428,34 +448,45 @@ public class ChequeEditView {
 	        label.setWrapText(true);
 	        return label;
 	    }
-
 	    private static void addChamp(String name, String valeur, double x, double y, double largeur,
-                Map<String, TextField> fields, Map<String, Label> errors, Pane overlay, String langue) {
+                Map<String, TextField> fields, Map<String, Label> errors,
+                Pane overlay, String langue) {
+
 TextField tf = new TextField(valeur);
 tf.setLayoutX(x);
 tf.setLayoutY(y);
 tf.setPrefWidth(largeur);
-
-// Taille de police personnalisée
-if (name.equals("beneficiaire") || name.equals("ville")) {
 tf.setFont(Font.font("Arial", 12));
-} else {
-tf.setFont(Font.font("Arial", 12));
-}
-
 tf.setPromptText(messages.get(langue).get(name));
 tf.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: black;");
+tf.focusedProperty().addListener((obs, old, now) -> {
+    if (langue.equals("ar") && (name.equals("beneficiaire") || name.equals("ville"))) {
+        tf.setStyle("-fx-text-alignment: right; -fx-prompt-text-fill: derive(gray, 30%);");
+        tf.setNodeOrientation(javafx.geometry.NodeOrientation.RIGHT_TO_LEFT);
 
-// Gestion de l'orientation
-if (langue.equals("ar") && (name.equals("beneficiaire") || name.equals("ville"))) {
-tf.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
-tf.setStyle(tf.getStyle() + " -fx-text-alignment: right;");
-tf.setAlignment(Pos.CENTER_RIGHT);
-} else {
-tf.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
-tf.setStyle(tf.getStyle() + " -fx-text-alignment: left;");
-tf.setAlignment(Pos.CENTER_LEFT);
-}
+        // 🔁 Alignement et largeur pour l'arabe
+        if (name.equals("beneficiaire")) {
+            tf.setLayoutX(160);           // collé à droite
+            tf.setPrefWidth(630);         // remplissage vers la gauche
+        } else if (name.equals("ville")) {
+            tf.setLayoutX(400);
+            tf.setPrefWidth(180);
+        }
+
+    } else {
+        tf.setStyle("-fx-text-alignment: left; -fx-prompt-text-fill: derive(gray, -30%);");
+        tf.setNodeOrientation(javafx.geometry.NodeOrientation.LEFT_TO_RIGHT);
+
+        // 🔁 Position et largeur classiques (français)
+        if (name.equals("beneficiaire")) {
+            tf.setLayoutX(150);
+            tf.setPrefWidth(630);
+        } else if (name.equals("ville")) {
+            tf.setLayoutX(400);  // ou 470 si identique
+            tf.setPrefWidth(180);
+        }
+    }
+});
 
 Label err = new Label();
 err.setTextFill(Color.RED);
@@ -467,12 +498,13 @@ fields.put(name, tf);
 errors.put(name, err);
 overlay.getChildren().addAll(tf, err);
 
-tf.textProperty().addListener((obs, old, val) -> {
-String original = val;
+// ✅ Validation classique
+tf.textProperty().addListener((obs, oldVal, newVal) -> {
+String val = newVal;
 
 if (name.equals("montant")) val = val.replaceAll("[^\\d.]", "");
 if (name.equals("beneficiaire")) {
-val = val.replaceAll("[^\\p{L}\\s']", "").toUpperCase();
+val = val.replaceAll("[^\\p{L}\\s']", "");
 if (val.length() > 75) val = val.substring(0, 75);
 }
 if (name.equals("ville") && langue.equals("fr")) val = val.replaceAll("\\d|[^\\p{L}\\s]", "");
@@ -490,6 +522,7 @@ tf.positionCaret(Math.min(caretPos, val.length()));
 validateField(name, tf, err, langue);
 });
 
+// ✅ Mappage clavier arabe
 tf.addEventFilter(KeyEvent.KEY_TYPED, e -> {
 String character = e.getCharacter();
 if (character == null || character.isEmpty()) {
@@ -497,9 +530,13 @@ e.consume();
 return;
 }
 
-if (name.equals("montant") && !character.matches("[0-9\\.]")) e.consume();
+if (name.equals("montant") && !character.matches("[0-9\\.]")) {
+e.consume();
+}
 
-if ((name.equals("nomCheque") || name.equals("nomSerie")) && tf.getText().length() >= 1) e.consume();
+if ((name.equals("nomCheque") || name.equals("nomSerie")) && tf.getText().length() >= 1) {
+e.consume();
+}
 
 if (langue.equals("ar") && (name.equals("beneficiaire") || name.equals("ville"))) {
 String mapped = arabicMap.get(character.toLowerCase());
@@ -511,7 +548,7 @@ if (mapped != null) {
 });
 }
 
-    private static boolean validateForm(Map<String, TextField> fields, Map<String, Label> errors, DatePicker date, String lang) {
+	       private static boolean validateForm(Map<String, TextField> fields, Map<String, Label> errors, DatePicker date, String lang) {
         boolean valid = true;
         for (String key : fields.keySet()) {
             if (!validateField(key, fields.get(key), errors.get(key), lang)) valid = false;
