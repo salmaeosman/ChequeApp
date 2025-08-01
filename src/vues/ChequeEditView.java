@@ -17,12 +17,14 @@ import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
 import services.MontantEnLettresService;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public class ChequeEditView {
-
+     	private static Stage currentStage;
 	    private static Label ligne1;
 	    private static Label ligne2;
 
@@ -91,6 +93,9 @@ public class ChequeEditView {
 	    private static Button imprimerBtn;
 
 	    public static void afficher(Cheque cheque, ChequeController controller, Runnable onSaveCallback) {
+	    	 if (currentStage != null) {
+	    	        currentStage.close();
+	    	    }
 	        Stage stage = new Stage();
 	        stage.setTitle("Modifier le chèque");
 
@@ -153,16 +158,13 @@ public class ChequeEditView {
 	        fields.values().forEach(tf -> tf.textProperty().addListener((obs, o, n) -> validateAll.run()));
 	        dateField.valueProperty().addListener((obs, o, n) -> validateAll.run());
 
-	        Button retour = bouton("⬅ Retour", 100, 500);
-	        retour.setOnAction(e -> {
-	            stage.close();
-	            ChequeVisualisationView.afficher(chequeCourant[0], controller);
-	        });
+	       
 
-	        enregistrerBtn = bouton("💾 Enregistrer", 370, 500);
+	        enregistrerBtn = bouton("💾 Enregistrer", 300, 400);
 	        enregistrerBtn.setDisable(true);
 	        enregistrerBtn.setOnAction(e -> {
 	            if (!validateForm(fields, errors, dateField, langue)) return;
+
 	            try {
 	                Cheque maj = new Cheque();
 	                maj.setId(cheque.getId());
@@ -175,10 +177,17 @@ public class ChequeEditView {
 	                maj.setNumeroSerie(Long.parseLong(fields.get("numeroSerie").getText()));
 	                maj.setLangue(langue);
 
+	                // Modification du chèque
 	                if (controller.modifierCheque(cheque.getId(), maj)) {
-	                    chequeCourant[0] = maj;
 	                    showAlert(Alert.AlertType.INFORMATION, "Succès", "Chèque modifié.");
-	                    stage.close();
+
+	                    chequeCourant[0] = maj; // ✅ Mettre à jour le chèque courant
+	                    stage.close(); // ✅ Fermer avant d'ouvrir la nouvelle vue
+
+	                    // ✅ Affichage de la version modifiée
+	                    ChequeVisualisationView.afficher(maj, controller);
+
+	                    // Callback éventuel
 	                    if (onSaveCallback != null) onSaveCallback.run();
 	                } else {
 	                    showAlert(Alert.AlertType.ERROR, "Erreur", "Modification échouée.");
@@ -188,8 +197,7 @@ public class ChequeEditView {
 	                showAlert(Alert.AlertType.ERROR, "Erreur", "Exception : " + ex.getMessage());
 	            }
 	        });
-
-	        imprimerBtn = bouton("🖨️ Imprimer", 620, 500);
+	        imprimerBtn = bouton("Imprimer", 500, 400);
 	        imprimerBtn.setDisable(true);
 	        imprimerBtn.setOnAction(e -> {
 	            // ✅ Avant impression : Affichage d’un aperçu
@@ -221,7 +229,7 @@ public class ChequeEditView {
 	            previewStage.show();
 	        });
 
-	        overlay.getChildren().addAll(retour, enregistrerBtn, imprimerBtn);
+	        overlay.getChildren().addAll(enregistrerBtn, imprimerBtn);
 	        chequePane.getChildren().addAll(chequeView, overlay);
 	        layout.getChildren().addAll(title, chequePane);
 	        root.setCenter(layout);
@@ -307,24 +315,19 @@ public class ChequeEditView {
 	            l2.setAlignment(Pos.CENTER_LEFT);
 	        }
 
-	     // ✅ Bénéficiaire affiché correctement RTL
+	     // ✅ Bénéficiaire affiché correctement selon la langue
 	        Label beneficiaire = new Label(fields.get("beneficiaire").getText());
-	        beneficiaire.setFont(Font.font("Arial", 18));
-	        beneficiaire.setLayoutY(113);
+	        beneficiaire.setFont(Font.font("Arial", 14));
+	        beneficiaire.setLayoutY(116);
 	        beneficiaire.setPrefHeight(25);
+	        beneficiaire.setPrefWidth(500); // largeur commune aux deux cas
 
 	        if ("ar".equals(langue)) {
-	            // Largeur fixe adaptée à la ligne du chèque
-	            double champLargeur = 500;
-	            double margeDroite = 80;
-
-	            beneficiaire.setPrefWidth(champLargeur);
-	            beneficiaire.setLayoutX(widthPx - champLargeur - margeDroite);
-	            beneficiaire.setAlignment(Pos.BASELINE_RIGHT);
+	            beneficiaire.setLayoutX(115); // largeur champ + marge droite
+	            beneficiaire.setAlignment(Pos.BASELINE_LEFT);
 	            beneficiaire.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
 	            beneficiaire.setStyle("-fx-text-alignment: right; -fx-label-padding: 0;");
 	        } else {
-	            beneficiaire.setPrefWidth(500);
 	            beneficiaire.setLayoutX(90);
 	            beneficiaire.setAlignment(Pos.BASELINE_LEFT);
 	            beneficiaire.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
@@ -333,9 +336,9 @@ public class ChequeEditView {
 
 	        // Ville
 	        Label ville = new Label(fields.get("ville").getText());
-	        ville.setFont(Font.font(16));
+	        ville.setFont(Font.font(14));
 	        ville.setLayoutX(350); // environ 460
-	        ville.setLayoutY(140);
+	        ville.setLayoutY(143);
 
 	        // Date
 	        Label date = new Label(dateField.getValue().toString());
@@ -409,28 +412,119 @@ public class ChequeEditView {
 	            javafx.scene.text.Text textMeasurer = new javafx.scene.text.Text();
 	            textMeasurer.setFont(Font.font("Arial", 16));
 
-	            double maxWidth = "ar".equals(langue) ? 250 : 370;
+	            double maxWidth = "ar".equals(langue) ? 370 : 370;
 
-	            String[] words = lettres.split("\\s+");
+	            String mainPart = lettres;
+	            String centimesPart = "";
+
+	            boolean isAr = "ar".equals(langue);
+	            String centimesKeyword = isAr ? "سنتيم" : "centime";
+	            int centimesIndex = lettres.indexOf(centimesKeyword);
+
+	            if (centimesIndex != -1) {
+	                int start = lettres.lastIndexOf(" ", centimesIndex - 1);
+	                centimesPart = lettres.substring(start).trim();
+	                mainPart = lettres.substring(0, start).trim();
+
+	                if (!isAr && mainPart.endsWith(" et")) {
+	                    centimesPart = "et " + centimesPart;
+	                    mainPart = mainPart.substring(0, mainPart.length() - 3).trim();
+	                }
+	            }
+
+	            List<String> blocks = new ArrayList<>();
+
+	            if (isAr) {
+	                // Regrouper les blocs logiques en arabe (ex: "مائة و عشرون")
+	                String[] rawTokens = mainPart.split(" ");
+	                List<String> tokens = new ArrayList<>();
+	                for (String token : rawTokens) {
+	                    if (!token.isBlank()) tokens.add(token);
+	                }
+
+	                for (int i = 0; i < tokens.size(); i++) {
+	                    if (tokens.get(i).equals("و") && i > 0 && i < tokens.size() - 1) {
+	                        String bloc = tokens.get(i - 1) + " و " + tokens.get(i + 1);
+	                        blocks.remove(blocks.size() - 1); // Supprimer le mot précédent
+	                        blocks.add(bloc);
+	                        i++; // Sauter le mot suivant
+	                    } else {
+	                        blocks.add(tokens.get(i));
+	                    }
+	                }
+	            } else {
+	                // Français : découper normalement
+	                String[] words = mainPart.split(" ");
+	                for (String word : words) {
+	                    if (!word.isBlank()) blocks.add(word);
+	                }
+	            }
+
 	            StringBuilder ligne1Text = new StringBuilder();
 	            StringBuilder ligne2Text = new StringBuilder();
 
-	            for (String word : words) {
-	                String tentative = ligne1Text.length() > 0 ? ligne1Text + " " + word : word;
+	            StringBuilder currentLine = new StringBuilder();
+	            boolean onFirstLine = true;
+
+	            for (String block : blocks) {
+	                String tentative = currentLine.length() > 0 ? currentLine + " " + block : block;
 	                textMeasurer.setText(tentative);
 	                double width = textMeasurer.getLayoutBounds().getWidth();
 
 	                if (width <= maxWidth) {
-	                    if (ligne1Text.length() > 0) ligne1Text.append(" ");
-	                    ligne1Text.append(word);
+	                    if (currentLine.length() > 0) currentLine.append(" ");
+	                    currentLine.append(block);
 	                } else {
-	                    if (ligne2Text.length() > 0) ligne2Text.append(" ");
-	                    ligne2Text.append(word);
+	                    if (onFirstLine) {
+	                        ligne1Text = new StringBuilder(currentLine.toString());
+	                        currentLine = new StringBuilder(block);
+	                        onFirstLine = false;
+	                    } else {
+	                        if (currentLine.length() > 0) currentLine.append(" ");
+	                        currentLine.append(block);
+	                    }
 	                }
+	            }
+
+	            if (onFirstLine) {
+	                ligne1Text = new StringBuilder(currentLine.toString());
+	            } else {
+	                ligne2Text = new StringBuilder(currentLine.toString());
+	            }
+
+	            // Ajouter les centimes à la fin de la ligne 2
+	            if (!centimesPart.isEmpty()) {
+	                if (ligne2Text.length() > 0) ligne2Text.append(" ");
+	                ligne2Text.append(centimesPart);
 	            }
 
 	            ligne1.setText(ligne1Text.toString());
 	            ligne2.setText(ligne2Text.toString());
+
+	            // Configuration visuelle (alignement, position, largeur, etc.)
+	            ligne1.setFont(Font.font("Arial", 16));
+	            ligne2.setFont(Font.font("Arial", 16));
+	            ligne1.setWrapText(true);
+	            ligne2.setWrapText(true);
+
+	            ligne1.setLayoutY(111);
+	            ligne2.setLayoutY(139);
+
+	            if (isAr) {
+	                ligne1.setLayoutX(95);
+	                ligne2.setLayoutX(155);
+	                ligne1.setPrefWidth(670);
+	                ligne2.setPrefWidth(670);
+	                ligne1.setAlignment(Pos.CENTER_RIGHT);
+	                ligne2.setAlignment(Pos.CENTER_RIGHT);
+	            } else {
+	                ligne1.setLayoutX(395);
+	                ligne2.setLayoutX(100);
+	                ligne1.setPrefWidth(650);
+	                ligne2.setPrefWidth(650);
+	                ligne1.setAlignment(Pos.CENTER_LEFT);
+	                ligne2.setAlignment(Pos.CENTER_LEFT);
+	            }
 
 	        } catch (Exception ex) {
 	            ligne1.setText("");
@@ -453,61 +547,102 @@ public class ChequeEditView {
                 Pane overlay, String langue) {
 
 TextField tf = new TextField(valeur);
-tf.setLayoutX(x);
-tf.setLayoutY(y);
-tf.setPrefWidth(largeur);
 tf.setFont(Font.font("Arial", 12));
 tf.setPromptText(messages.get(langue).get(name));
 tf.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: black;");
-tf.focusedProperty().addListener((obs, old, now) -> {
-    if (langue.equals("ar") && (name.equals("beneficiaire") || name.equals("ville"))) {
-        tf.setStyle("-fx-text-alignment: right; -fx-prompt-text-fill: derive(gray, 30%);");
-        tf.setNodeOrientation(javafx.geometry.NodeOrientation.RIGHT_TO_LEFT);
-
-        // 🔁 Alignement et largeur pour l'arabe
-        if (name.equals("beneficiaire")) {
-            tf.setLayoutX(160);           // collé à droite
-            tf.setPrefWidth(630);         // remplissage vers la gauche
-        } else if (name.equals("ville")) {
-            tf.setLayoutX(400);
-            tf.setPrefWidth(180);
-        }
-
-    } else {
-        tf.setStyle("-fx-text-alignment: left; -fx-prompt-text-fill: derive(gray, -30%);");
-        tf.setNodeOrientation(javafx.geometry.NodeOrientation.LEFT_TO_RIGHT);
-
-        // 🔁 Position et largeur classiques (français)
-        if (name.equals("beneficiaire")) {
-            tf.setLayoutX(150);
-            tf.setPrefWidth(630);
-        } else if (name.equals("ville")) {
-            tf.setLayoutX(400);  // ou 470 si identique
-            tf.setPrefWidth(180);
-        }
-    }
-});
 
 Label err = new Label();
 err.setTextFill(Color.RED);
 err.setFont(Font.font(10));
-err.setLayoutX(x);
+
+// Appliquer immédiatement l'orientation et la position selon la langue
+if (langue.equals("ar") && (name.equals("beneficiaire") || name.equals("ville"))) {
+tf.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+tf.setStyle("-fx-text-alignment: right; -fx-prompt-text-fill: derive(gray, 30%);");
+
+if (name.equals("beneficiaire")) {
+tf.setLayoutX(160);          // collé à droite
+tf.setPrefWidth(630);        // remplissage vers la gauche
+} else if (name.equals("ville")) {
+tf.setLayoutX(400);
+tf.setPrefWidth(180);
+} else {
+tf.setLayoutX(x);
+tf.setPrefWidth(largeur);
+}
+
+} else {
+tf.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
+tf.setStyle("-fx-text-alignment: left; -fx-prompt-text-fill: derive(gray, -30%);");
+
+if (name.equals("beneficiaire")) {
+tf.setLayoutX(150);
+tf.setPrefWidth(630);
+} else if (name.equals("ville")) {
+tf.setLayoutX(400);
+tf.setPrefWidth(180);
+} else {
+tf.setLayoutX(x);
+tf.setPrefWidth(largeur);
+}
+}
+
+tf.setLayoutY(y);
+err.setLayoutX(tf.getLayoutX());
 err.setLayoutY(y + 25);
 
 fields.put(name, tf);
 errors.put(name, err);
 overlay.getChildren().addAll(tf, err);
 
-// ✅ Validation classique
+// Focus listener pour réappliquer styles au besoin
+tf.focusedProperty().addListener((obs, old, now) -> {
+if (langue.equals("ar") && (name.equals("beneficiaire") || name.equals("ville"))) {
+tf.setStyle("-fx-text-alignment: right; -fx-prompt-text-fill: derive(gray, 30%);");
+tf.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+
+if (name.equals("beneficiaire")) {
+   tf.setLayoutX(160);
+   tf.setPrefWidth(630);
+} else if (name.equals("ville")) {
+   tf.setLayoutX(400);
+   tf.setPrefWidth(180);
+}
+
+} else {
+tf.setStyle("-fx-text-alignment: left; -fx-prompt-text-fill: derive(gray, -30%);");
+tf.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
+
+if (name.equals("beneficiaire")) {
+   tf.setLayoutX(150);
+   tf.setPrefWidth(630);
+} else if (name.equals("ville")) {
+   tf.setLayoutX(400);
+   tf.setPrefWidth(180);
+}
+}
+
+err.setLayoutX(tf.getLayoutX());
+});
+
+// Validation
 tf.textProperty().addListener((obs, oldVal, newVal) -> {
 String val = newVal;
 
-if (name.equals("montant")) val = val.replaceAll("[^\\d.]", "");
+if (name.equals("montant")) {
+val = val.replaceAll("[^\\d.]", "");
+}
+
 if (name.equals("beneficiaire")) {
 val = val.replaceAll("[^\\p{L}\\s']", "");
+val = val.toUpperCase(); // majuscules
 if (val.length() > 75) val = val.substring(0, 75);
 }
-if (name.equals("ville") && langue.equals("fr")) val = val.replaceAll("\\d|[^\\p{L}\\s]", "");
+
+if (name.equals("ville") && langue.equals("fr")) {
+val = val.replaceAll("\\d|[^\\p{L}\\s]", "");
+}
+
 if (name.equals("nomCheque") || name.equals("nomSerie")) {
 val = val.toUpperCase();
 if (val.length() > 1) val = val.substring(0, 1);
@@ -522,7 +657,7 @@ tf.positionCaret(Math.min(caretPos, val.length()));
 validateField(name, tf, err, langue);
 });
 
-// ✅ Mappage clavier arabe
+// Mappage clavier arabe
 tf.addEventFilter(KeyEvent.KEY_TYPED, e -> {
 String character = e.getCharacter();
 if (character == null || character.isEmpty()) {
@@ -532,22 +667,31 @@ return;
 
 if (name.equals("montant") && !character.matches("[0-9\\.]")) {
 e.consume();
+return;
 }
 
 if ((name.equals("nomCheque") || name.equals("nomSerie")) && tf.getText().length() >= 1) {
 e.consume();
+return;
 }
-
+//// Arabe : autoriser lettres mappées + espaces
 if (langue.equals("ar") && (name.equals("beneficiaire") || name.equals("ville"))) {
-String mapped = arabicMap.get(character.toLowerCase());
-if (mapped != null) {
-   e.consume();
-   tf.insertText(tf.getCaretPosition(), mapped);
-}
+    if (character.equals(" ")) {
+        // Autoriser l’espace
+        return;
+    }
+
+    String mapped = arabicMap.get(character.toLowerCase());
+    if (mapped != null) {
+        e.consume();
+        tf.insertText(tf.getCaretPosition(), mapped);
+    } else {
+        // Bloquer tout autre caractère
+        e.consume();
+    }
 }
 });
 }
-
 	       private static boolean validateForm(Map<String, TextField> fields, Map<String, Label> errors, DatePicker date, String lang) {
         boolean valid = true;
         for (String key : fields.keySet()) {

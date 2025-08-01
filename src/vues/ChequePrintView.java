@@ -1,5 +1,8 @@
 package vues;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import controllers.ChequeController;
 import entities.Cheque;
 import javafx.geometry.Pos;
@@ -38,24 +41,24 @@ public class ChequePrintView {
         Pane overlay = new Pane();
         overlay.setPrefSize(widthPx, heightPx);
 
-        Label montantChiffres = creerChamp(String.format("%.2f", cheque.getMontant()), 500, 18, 16);
+        Label montantChiffres = creerChamp(String.format("%.2f", cheque.getMontant()), 500, 20, 13);
         montantChiffres.setPrefWidth(120);
         montantChiffres.setAlignment(Pos.CENTER_RIGHT);
 
         ligne1 = new Label();
         ligne2 = new Label();
-        ligne1.setFont(new Font(16));
-        ligne2.setFont(new Font(16));
+        ligne1.setFont(new Font(12));
+        ligne2.setFont(new Font(12));
         updateDirectionForArabic(cheque.getLangue());
         updateMontantEnLettres(montantLettre, cheque.getLangue());
 
         Label beneficiaire;
         if ("ar".equals(cheque.getLangue())) {
-            beneficiaire = creerChamp(cheque.getBeneficiaire(), 40, 115, 18);
+            beneficiaire = creerChamp(cheque.getBeneficiaire(), 40, 123, 12);
             beneficiaire.setPrefWidth(600);
             beneficiaire.setAlignment(Pos.CENTER_RIGHT);
         } else {
-            beneficiaire = creerChamp(cheque.getBeneficiaire(), 115, 115, 18);
+            beneficiaire = creerChamp(cheque.getBeneficiaire(), 115, 123, 12);
             beneficiaire.setPrefWidth(600);
             beneficiaire.setAlignment(Pos.CENTER_LEFT);
         }
@@ -145,8 +148,8 @@ public class ChequePrintView {
     }
 
     private static void updateDirectionForArabic(String langue) {
-        ligne1.setFont(new Font(16));
-        ligne2.setFont(new Font(16));
+        ligne1.setFont(new Font(12));
+        ligne2.setFont(new Font(12));
 
         if ("ar".equals(langue)) {
             ligne1.setLayoutX(-70);
@@ -177,29 +180,121 @@ public class ChequePrintView {
         try {
             String lettres = montantLettreDirect;
             javafx.scene.text.Text textMeasurer = new javafx.scene.text.Text();
-            textMeasurer.setFont(Font.font("Arial", 16));
-
+            textMeasurer.setFont(Font.font("Arial", 12));
             double maxWidth = "ar".equals(langue) ? 250 : 300;
-            String[] words = lettres.split("\\s+");
-            StringBuilder ligne1Text = new StringBuilder();
-            StringBuilder ligne2Text = new StringBuilder();
 
-            for (String word : words) {
-                String tentative = ligne1Text.length() > 0 ? ligne1Text + " " + word : word;
-                textMeasurer.setText(tentative);
-                double width = textMeasurer.getLayoutBounds().getWidth();
+            String mainPart = lettres;
+            String centimesPart = "";
 
-                if (width <= maxWidth) {
-                    if (ligne1Text.length() > 0) ligne1Text.append(" ");
-                    ligne1Text.append(word);
-                } else {
-                    if (ligne2Text.length() > 0) ligne2Text.append(" ");
-                    ligne2Text.append(word);
+            boolean isAr = "ar".equals(langue);
+            String centimesKeyword = isAr ? "سنتيم" : "centime";
+            int centimesIndex = lettres.indexOf(centimesKeyword);
+            if (centimesIndex != -1) {
+                int start = lettres.lastIndexOf(" ", centimesIndex - 1);
+                centimesPart = lettres.substring(start).trim();
+                mainPart = lettres.substring(0, start).trim();
+
+                if (!isAr && mainPart.endsWith(" et")) {
+                    centimesPart = "et " + centimesPart;
+                    mainPart = mainPart.substring(0, mainPart.length() - 3).trim();
                 }
             }
 
-            ligne1.setText(ligne1Text.toString());
-            ligne2.setText(ligne2Text.toString());
+            List<String> blocks = new ArrayList<>();
+
+            if (isAr) {
+                // Découpage intelligent en arabe, regrouper autour de "و"
+                String[] rawTokens = mainPart.split(" ");
+                List<String> tokens = new ArrayList<>();
+                for (String token : rawTokens) {
+                    if (!token.isBlank()) tokens.add(token);
+                }
+
+                for (int i = 0; i < tokens.size(); i++) {
+                    if (tokens.get(i).equals("و") && i > 0 && i < tokens.size() - 1) {
+                        String bloc = tokens.get(i - 1) + " و " + tokens.get(i + 1);
+                        blocks.remove(blocks.size() - 1); // enlever le mot précédent
+                        blocks.add(bloc);
+                        i++; // sauter le mot suivant
+                    } else {
+                        blocks.add(tokens.get(i));
+                    }
+                }
+            } else {
+                // Français : découpage classique par mot
+                String[] words = mainPart.split(" ");
+                for (String word : words) {
+                    if (!word.isBlank()) blocks.add(word);
+                }
+            }
+
+            StringBuilder l1 = new StringBuilder();
+            StringBuilder l2 = new StringBuilder();
+            StringBuilder currentLine = new StringBuilder();
+            boolean onFirstLine = true;
+
+            for (String block : blocks) {
+                String tentative = currentLine.length() > 0 ? currentLine + " " + block : block;
+                textMeasurer.setText(tentative);
+                if (textMeasurer.getLayoutBounds().getWidth() <= maxWidth) {
+                    if (currentLine.length() > 0) currentLine.append(" ");
+                    currentLine.append(block);
+                } else {
+                    if (onFirstLine) {
+                        l1 = new StringBuilder(currentLine.toString());
+                        currentLine = new StringBuilder(block);
+                        onFirstLine = false;
+                    } else {
+                        if (currentLine.length() > 0) currentLine.append(" ");
+                        currentLine.append(block);
+                    }
+                }
+            }
+
+            if (onFirstLine) {
+                l1 = new StringBuilder(currentLine.toString());
+            } else {
+                l2 = new StringBuilder(currentLine.toString());
+            }
+
+            // Ajouter les centimes à la fin de la ligne 2
+            if (!centimesPart.isEmpty()) {
+                if (l2.length() > 0) l2.append(" ");
+                l2.append(centimesPart);
+            }
+
+            // Appliquer le texte
+            ligne1.setText(l1.toString());
+            ligne2.setText(l2.toString());
+
+            // Mise en page en fonction de la langue
+            ligne1.setFont(new Font(12));
+            ligne2.setFont(new Font(12));
+
+            ligne1.setWrapText(true);
+            ligne2.setWrapText(true);
+
+            ligne1.setLayoutY(75);
+            ligne2.setLayoutY(99);
+
+            if (isAr) {
+                ligne1.setLayoutX(-70);
+                ligne1.setPrefWidth(690);
+                ligne1.setAlignment(Pos.CENTER_RIGHT);
+
+                ligne2.setLayoutX(-2);
+                ligne2.setPrefWidth(670);
+                ligne2.setAlignment(Pos.CENTER_RIGHT);
+            } else {
+                ligne1.setLayoutX(320);
+                ligne1.setPrefWidth(650);
+                ligne1.setAlignment(Pos.CENTER_LEFT);
+
+                ligne2.setLayoutX(60);
+                ligne2.setPrefWidth(650);
+                ligne2.setAlignment(Pos.CENTER_LEFT);
+            }
+
         } catch (Exception ex) {
             ligne1.setText("");
             ligne2.setText("");

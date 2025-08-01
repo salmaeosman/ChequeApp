@@ -54,11 +54,11 @@ public class ChequeVisualisationView {
 
         Label beneficiaire;
         if ("ar".equals(cheque.getLangue())) {
-            beneficiaire = creerChamp(cheque.getBeneficiaire(), 195, 260, 18);
+            beneficiaire = creerChamp(cheque.getBeneficiaire(), 195, 265, 13);
             beneficiaire.setPrefWidth(600);
             beneficiaire.setAlignment(Pos.CENTER_RIGHT);
         } else {
-            beneficiaire = creerChamp(cheque.getBeneficiaire(), 153, 260, 18);
+            beneficiaire = creerChamp(cheque.getBeneficiaire(), 153, 26, 15);
             beneficiaire.setPrefWidth(600);
             beneficiaire.setAlignment(Pos.CENTER_LEFT);
         }
@@ -75,9 +75,7 @@ public class ChequeVisualisationView {
 
         Button boutonModifier = createButton("Modifier", 200, e -> {
             stage.close();
-            ChequeEditView.afficher(cheque, controller, () -> {
-                afficher(cheque, controller);
-            });
+            ChequeEditView.afficher(cheque, controller, null); // ✅ pas de réaffichage inutile
         });
 
         Button boutonScanner = createButton("Scanner", 365, e -> {
